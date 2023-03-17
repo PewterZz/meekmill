@@ -2,12 +2,12 @@ import React, { useState, useEffect } from "react";
 import {
   signInWithEmailAndPassword,
   onAuthStateChanged,
-  createUserWithEmailAndPassword
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail
 } from "firebase/auth";
 import { auth } from "../firebase.js";
 import { useNavigate } from "react-router-dom";
 import "./welcome.css";
-import TodoSVG from '../assets/todo-svg.svg'
 
 export default function Welcome() {
   const [email, setEmail] = useState("");
@@ -67,9 +67,22 @@ export default function Welcome() {
       .catch((err) => alert(err.message));
   };
 
+
+  const handleResetPassword = () => {
+    const email = prompt("Enter your email address:");
+    if (email) {
+      sendPasswordResetEmail(auth, email)
+        .then(() => {
+          alert("Password reset email sent!");
+        })
+        .catch((err) => {
+          alert(err.message);
+        });
+    }
+  };  
+
   return (
     <div className="welcome">
-    <img src={TodoSVG} className="todo-svg" />
       <h1>Todo-List</h1>
       <div className="login-register-container">
         {isRegistering ? (
@@ -133,6 +146,7 @@ export default function Welcome() {
             <button className="sign-in-register-button" onClick={handleSignIn}>
               Sign In
             </button>
+            <button onClick={handleResetPassword}>Reset Password</button>
             <button
               className="create-account-button"
               onClick={() => setIsRegistering(true)}

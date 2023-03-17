@@ -3,6 +3,7 @@ import { signOut, onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "../firebase.js";
 import { useNavigate } from "react-router-dom";
 import { uid } from "uid";
+import { collection, doc, addDoc, onSnapshot, updateDoc, deleteDoc } from "firebase/firestore";
 import { set, ref, onValue, remove, update } from "firebase/database";
 import "./homepage.css";
 import AddIcon from "@mui/icons-material/Add";
@@ -17,25 +18,22 @@ export default function Homepage() {
   const [isEdit, setIsEdit] = useState(false);
   const [tempUidd, setTempUidd] = useState("");
   const navigate = useNavigate();
+  const collectionRef = collection(db, "todos");
+
 
   useEffect(() => {
-    auth.onAuthStateChanged((user) => {
-      if (user) {
-        // read
-        onValue(ref(db, `/${auth.currentUser.uid}`), (snapshot) => {
-          setTodos([]);
-          const data = snapshot.val();
-          if (data !== null) {
-            Object.values(data).map((todo) => {
-              setTodos((oldArray) => [...oldArray, todo]);
-            });
-          }
-        });
-      } else if (!user) {
-        navigate("/");
-      }
+    const collectionRef = collection(db, "todos");
+    const unsubscribe = onSnapshot(collectionRef, (querySnapshot) => {
+      const updatedTodos = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        updatedTodos.push({ id: doc.id, ...data });
+      });
+      setTodos(updatedTodos);
     });
+    return unsubscribe;
   }, []);
+  
 
   const handleSignOut = () => {
     signOut(auth)
@@ -49,73 +47,77 @@ export default function Homepage() {
 
   // add
   const writeToDatabase = () => {
-    const uidd = uid();
-    set(ref(db, `/${auth.currentUser.uid}/${uidd}`), {
+    addDoc(collectionRef, {
       todo: todo,
-      uidd: uidd
-    });
-
-    setTodo("");
+    })
+      .then((docRef) => {
+        console.log("Document written with ID: ", docRef.id);
+        setTodo("");
+      })
+      .catch((error) => {
+        console.error("Error adding document: ", error);
+      });
   };
+  
 
   // update
   const handleUpdate = (todo) => {
     setIsEdit(true);
     setTodo(todo.todo);
-    setTempUidd(todo.uidd);
+    setTempUidd(todo.id);
   };
-
+  
   const handleEditConfirm = () => {
-    update(ref(db, `/${auth.currentUser.uid}/${tempUidd}`), {
+    const todoRef = doc(db, "todos", tempUidd);
+    updateDoc(todoRef, {
       todo: todo,
-      tempUidd: tempUidd
     });
-
     setTodo("");
     setIsEdit(false);
   };
 
   // delete
-  const handleDelete = (uid) => {
-    remove(ref(db, `/${auth.currentUser.uid}/${uid}`));
+  const handleDelete = (uidd) => {
+    console.log(uidd)
+    const todoRef = doc(db, "todos", uidd);
+    deleteDoc(todoRef);
   };
+  
+
 
   return (
     <div className="homepage">
-      <input
-        className="add-edit-input"
-        type="text"
-        placeholder="Add todo..."
-        value={todo}
-        onChange={(e) => setTodo(e.target.value)}
-      />
-
-      {todos.map((todo) => (
+      <div>
+        <h1 >Todo App</h1>
+        <LogoutIcon className="logout-icon" onClick={handleSignOut} />
+      </div>
+      <div>
+        <div>
+          <input
+            type="text"
+            placeholder="Enter your todo"
+            value={todo}
+            onChange={(e) => setTodo(e.target.value)}
+          />
+          {isEdit ? (
+            <CheckIcon onClick={handleEditConfirm} />
+          ) : (
+            <AddIcon onClick={writeToDatabase} />
+          )}
+        </div>
         <div className="todo">
-          <h1>{todo.todo}</h1>
-          <EditIcon
-            fontSize="large"
-            onClick={() => handleUpdate(todo)}
-            className="edit-button"
-          />
-          <DeleteIcon
-            fontSize="large"
-            onClick={() => handleDelete(todo.uidd)}
-            className="delete-button"
-          />
+          {todos.map((todo) => (
+            <div className="homepage__body__todos__todo" key={todo.id}>
+              <p>{todo.todo}</p>
+              <div className="homepage__body__todos__todo__icons">
+                <EditIcon className="edit-button" onClick={() => handleUpdate(todo)} />
+                <DeleteIcon className="delete-button" onClick={() => handleDelete(todo.id)} />
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
-
-      {isEdit ? (
-        <div>
-        <CheckIcon onClick={handleEditConfirm} className="add-confirm-icon"/>
-        </div>
-      ) : (
-        <div>
-          <AddIcon onClick={writeToDatabase} className="add-confirm-icon" />
-        </div>
-      )}
-        <LogoutIcon onClick={handleSignOut} className="logout-icon" />
+      </div>
     </div>
+
   );
 }
