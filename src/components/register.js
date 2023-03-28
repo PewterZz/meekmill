@@ -10,7 +10,7 @@ import { auth } from "../firebase.js";
 import { useNavigate } from "react-router-dom";
 import "./welcome.css";
 
-export default function Welcome() {
+export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
@@ -100,8 +100,6 @@ export default function Welcome() {
     <div className="welcome">
       <h1>Todo-List</h1>
       <div className="login-register-container">
-        {isRegistering ? (
-          <>
             <input
               type="email"
               placeholder="Email"
@@ -148,30 +146,7 @@ export default function Welcome() {
             />
             <button className="sign-in-register-button" onClick={handleRegister}>Register</button>
             <button onClick={handleSignInWithGoogle}>Sign in with Google</button>
-            <button className="create-account-button" onClick={() => setIsRegistering(false)}>Go back</button>
-          </>
-        ) : (
-          <>
-            <input type="email" placeholder="Email" onChange={handleEmailChange} value={email} />
-            <input
-              type="password"
-              onChange={handlePasswordChange}
-              value={password}
-              placeholder="Password"
-            />
-            <button className="sign-in-register-button" onClick={handleSignIn}>
-              Sign In
-            </button>
-            <button onClick={handleSignInWithGoogle}>Sign in with Google</button>
-            <button onClick={handleResetPassword}>Reset Password</button>
-            <button
-              className="create-account-button"
-              onClick={() => setIsRegistering(true)}
-            >
-              Create an account
-            </button>
-          </>
-        )}
+            <button className="create-account-button" onClick={() => navigate("/login")}>Go back</button>
       </div>
     </div>
   );
